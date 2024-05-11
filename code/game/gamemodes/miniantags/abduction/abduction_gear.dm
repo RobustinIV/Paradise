@@ -515,12 +515,15 @@ Congratulations! You are now trained for invasive xenobiology research!"}
 
 	L.Stun(14 SECONDS)
 	L.Weaken(14 SECONDS)
+	if(istype(L, /mob/living/silicon))
+		L.flash_eyes(affect_silicon = TRUE)
 	L.Stuttering(14 SECONDS)
 
-	var/datum/antagonist/vampire/vamp = L.mind.has_antag_datum(/datum/antagonist/vampire)
-	var/mob/living/carbon/human/H = user
-	if(vamp && istype(H.dna.species, /datum/species/abductor)) //no overshitcurs
-		vamp.adjust_nullification(40, 8) //advanced techonologies can even block vampipes powers yep lol
+	if(L.mind)
+		var/datum/antagonist/vampire/vamp = L.mind.has_antag_datum(/datum/antagonist/vampire)
+		var/mob/living/carbon/human/H = user
+		if(vamp && istype(H.dna.species, /datum/species/abductor)) //no overshitcurs
+			vamp.adjust_nullification(40, 8) //advanced techonologies can even block vampipes powers yep lol
 
 	L.visible_message("<span class='danger'>[user] has stunned [L] with [src]!</span>", \
 							"<span class='userdanger'>[user] has stunned you with [src]!</span>")
@@ -565,8 +568,14 @@ Congratulations! You are now trained for invasive xenobiology research!"}
 	var/species = "<span class='warning'>Unknown species</span>"
 	var/helptext = "<span class='warning'>Species unsuitable for experiments.</span>"
 
-	if(ishuman(L))
+	if(ishuman(L) && L.mind)
 		var/mob/living/carbon/human/H = L
+
+		if(!L.mind)
+			species = "<span class='warning'>It's a [H.dna.species.name]. It doesn't have any mind. Aborting.</span>"
+			to_chat(user, "[species]")
+			return
+
 		species = "<span clas=='notice'>It is a [H.dna.species.name].</span>"
 		if(locate(/obj/item/organ/internal/cyberimp/brain/anti_sleep) in H.internal_organs)
 			species += "\n<span clas=='notice'>Subject's body contains sleeping prevention implant.</span>"
@@ -603,7 +612,7 @@ Congratulations! You are now trained for invasive xenobiology research!"}
 				species += "\n<span class='warning'>Mutations that could interfere with the experiment were not detected.</span>"
 				species += "\n<span class='danger'>It is recommended to be faster, the subject can activate regenerative stasis.</span>"
 
-		if(L.mind.has_antag_datum(/datum/antagonist/vampire))
+		if(L.mind.has_antag_datum(/datum/antagonist/vampire) && L.mind)
 			var/datum/antagonist/vampire/vamp = L.mind.has_antag_datum(/datum/antagonist/vampire)
 			species += "\n<span class='warning'>The subject's body accepts only blood as nutriment.</span>"
 			species += "\n<span class='warning'>Subject can awake at any second and interfere experiment with stunning glare.</span>"
@@ -612,30 +621,37 @@ Congratulations! You are now trained for invasive xenobiology research!"}
 			if(vamp.get_ability(/datum/vampire_passive/full))
 				species += "\n<span class='danger'>Subject is very dangerous.</span>"
 
-		if(isalien(L))
-			if(islarva(L))
-				var/mob/living/carbon/alien/larva/larv = L
-				species = "<span class='warning'>Subject is useless for our experiments. Age: [larv.amount_grown]</span>"
-			if(isalienadult(L))
-				species = "<span class='warning'>Xenomorph lifeform.</span>"
-				var/mob/living/carbon/alien/humanoid/xeno = L
-				var/caste
-				if(xeno.caste == "d")
-					caste = "builder"
-				if(xeno.caste == "h")
-					caste = "humanoidcatcher"
-				if(xeno.caste == "s")
-					caste = "vindicator"
-				if(xeno.caste == "q")
-					caste = "matriarch"
-
-				species += "\n<span class='warning'>It is a [caste].</span>"
 
 		var/obj/item/organ/internal/heart/gland/temp = locate() in H.internal_organs
-		if(temp && !islarva(L))
+		if(temp)
 			helptext = "<span class='warning'>Experimental gland detected!</span>"
 		else
 			helptext = "<span class='notice'>Subject suitable for experiments.</span>"
+
+	if(isalien(L))
+		if(islarva(L))
+			var/mob/living/carbon/alien/larva/larv = L
+			species = "<span class='warning'>Young Xenomorph lifeform. Subject is useless for our experiments. Age: [larv.amount_grown]</span>"
+		if(isalienadult(L))
+			species = "<span class='warning'>Xenomorph lifeform.</span>"
+			var/mob/living/carbon/alien/humanoid/xeno = L
+			var/caste
+			if(xeno.caste == "d")
+				caste = "builder"
+			if(xeno.caste == "h")
+				caste = "humanoidcatcher"
+			if(xeno.caste == "s")
+				caste = "vindicator"
+			if(xeno.caste == "q")
+				caste = "matriarch"
+
+			species += "\n<span class='warning'>It is a [caste].</span>"
+
+			var/obj/item/organ/internal/heart/gland/temp = locate() in xeno.internal_organs
+			if(temp)
+				helptext = "<span class='warning'>Experimental gland detected!</span>"
+			else
+				helptext = "<span class='notice'>Subject suitable for experiments.</span>"
 
 	to_chat(user, "<span class='notice'>Probing result: </span>")
 	to_chat(user, "[species]")
@@ -705,6 +721,7 @@ Congratulations! You are now trained for invasive xenobiology research!"}
 	item_state = "labcoat_abductor_open"
 	species_exception = null
 	can_leave_fibers = FALSE
+	species_restricted = list("Abductor")
 
 /obj/item/clothing/suit/storage/labcoat/abductor/add_blood(list/blood_dna, b_color)
 	return
@@ -793,6 +810,7 @@ Congratulations! You are now trained for invasive xenobiology research!"}
 	icon_state = "enhanced"
 	item_state = "enhanced_s"
 	item_color = "enhanced"
+	species_restricted = list("Abductor")
 	has_sensor = FALSE
 	armor = list(MELEE = 10, BULLET = 10, LASER = 10, ENERGY = 10, BOMB = 5, RAD = 10, FIRE = 60, ACID = 60)
 	flags = NODROP
@@ -807,21 +825,137 @@ Congratulations! You are now trained for invasive xenobiology research!"}
 
 /obj/item/clothing/gloves/combat/abductor
 	name = "high-tech gloves"
-	desc = "Universal thick gloves with insulation and heat protection, very sterile and reflects any blood on it's surface. Doesn't have any fibers."
+	desc = "Thick gloves with insulation and heat protection, reflects any blood on it's surface and doesn't have any fibers. Can disable simple bots from range."
 	icon = 'icons/obj/abductor.dmi'
-	icon_state = "high_tech"
+	icon_state = "gloves_agent"
 	item_state = "high_tech"
 	can_leave_fibers = FALSE
 	transfer_prints = FALSE
 	origin_tech = "magnets=1;abductor=2"
-	pickpocket = 1
-	permeability_coefficient = 0
 	armor = list(MELEE = 10, BULLET = 10, LASER = 10, ENERGY = 10, BOMB = 5, RAD = 10, FIRE = 400, ACID = 10)
 	strip_delay = 160
 	safe_from_poison = TRUE
 
+/obj/item/clothing/gloves/combat/abductor/Touch(atom/A, proximity)
+	if(isbot(A))
+		var/mob/living/simple_animal/bot/B = A
+		B.locked = FALSE
+		B.turn_off()
+		B.apply_damage(10)
+
+	..()
+
 /obj/item/clothing/gloves/combat/abductor/add_blood(list/blood_dna, b_color)
 	return
+
+/obj/item/clothing/gloves/color/latex/nitrile/abductor
+	name = "science advanced gloves"
+	desc = "Very sterile, thick and reflects any blood on it's surface. Can defibrilate dead bodies."
+	icon = 'icons/obj/abductor.dmi'
+	icon_state = "gloves_science"
+	item_state = "lgloves"
+	siemens_coefficient = 0.10
+	permeability_coefficient = 0
+	item_color = "white"
+	origin_tech = "magnets=1;abductor=2;biotech=8" //if default defib has biotech 4 so this one have 8 cus it defibs and removes most of damage and heart attack
+	transfer_prints = FALSE
+	can_leave_fibers = FALSE
+	armor = list(MELEE = 2, BULLET = 2, LASER = 6, ENERGY = 6, BOMB = 6, RAD = 200, FIRE = 200, ACID = INFINITY)
+	safe_from_poison = TRUE
+
+/obj/item/clothing/gloves/color/latex/nitrile/abductor/Initialize(mapload)
+	..()
+	AddComponent(/datum/component/defib, FALSE, 1 SECONDS, speed_multiplier = -2, TRUE, 0, TRUE, TRUE, TRUE)
+
+/obj/item/clothing/gloves/color/latex/nitrile/abductor/add_blood(list/blood_dna, b_color)
+	return
+
+/obj/item/reagent_containers/applicator/abductor
+	name = "alien mender"
+	desc = "Hidden behind a high-tech look is a time-tested mechanism"
+	origin_tech = "materials=2;biotech=3;abductor=2"
+	icon_state = "alien_mender_empty"
+	item_state = "alien_mender"
+	icon = 'icons/obj/abductor.dmi'
+	emagged = TRUE
+	ignore_flags = TRUE
+	var/base_icon = "alien_mender_brute"
+
+/obj/item/reagent_containers/applicator/abductor/update_icon_state()
+	var/reag_pct = round((reagents.total_volume / volume) * 100)
+	switch(reag_pct)
+		if(51 to 100)
+			icon_state = "[base_icon]_full[applying ? "_active" : ""]"
+		if(1 to 50)
+			icon_state = "[base_icon][applying ? "_active" : ""]"
+		if(0)
+			icon_state = "alien_mender_empty"
+
+/obj/item/reagent_containers/applicator/abductor/brute
+	name = "alien brute mender"
+	base_icon = "alien_mender_brute"
+	list_reagents = list("styptic_powder" = 200)
+
+/obj/item/reagent_containers/applicator/abductor/burn
+	name = "alien burn mender"
+	base_icon = "alien_mender_burn"
+	list_reagents = list("silver_sulfadiazine" = 200)
+
+/obj/item/reagent_containers/glass/bottle/abductor
+	name = "alien bottle"
+	desc = "A durable bottle, made from alien alloy"
+	icon = 'icons/obj/abductor.dmi'
+	origin_tech = "materials=4"
+	icon_state = "alien_bottle"
+	item_state = "alien_bottle"
+	volume = 100
+
+/obj/item/reagent_containers/glass/bottle/abductor/rezadone
+	name = "rezadone bottle"
+	list_reagents = list("rezadone" = 100)
+
+/obj/item/reagent_containers/glass/bottle/abductor/epinephrine
+	name = "epinephrine bottle"
+	list_reagents = list("epinephrine" = 100)
+
+/obj/item/reagent_containers/glass/bottle/abductor/salgu
+	name = "saline-glucose solution bottle"
+	list_reagents = list("salglu_solution" = 100)
+
+/obj/item/reagent_containers/glass/bottle/abductor/oculine
+	name = "oculine bottle"
+	list_reagents = list("oculine" = 100)
+
+/obj/item/reagent_containers/glass/bottle/abductor/pen_acid
+	name = "pentetic acid bottle"
+	list_reagents = list("pen_acid" = 100)
+
+/obj/item/healthanalyzer/abductor
+	name = "alien health analyzer"
+	icon = 'icons/obj/abductor.dmi'
+	origin_tech = "materials=4;biotech=4;abductor=2"
+	advanced = TRUE
+	icon_state = "alien_hscanner"
+	item_state = "alien_hscanner"
+	desc = "Why it's interface looks so familiar?"
+
+/obj/item/storage/firstaid/abductor
+	name = "alien medkit"
+	desc = "Kit that contains some advanced alien medicine. Keep it away from alien-kids"
+	icon = 'icons/obj/abductor.dmi'
+	icon_state = "alien_medkit"
+	item_state = "alien_medkit"
+	throw_speed = 2
+	throw_range = 8
+
+/obj/item/storage/firstaid/abductor/populate_contents()
+	new /obj/item/reagent_containers/applicator/abductor/brute(src)
+	new /obj/item/reagent_containers/applicator/abductor/burn(src)
+	new /obj/item/reagent_containers/glass/bottle/abductor/rezadone(src)
+	new /obj/item/reagent_containers/glass/bottle/abductor/epinephrine(src)
+	new /obj/item/reagent_containers/glass/bottle/abductor/salgu(src)
+	new /obj/item/reagent_containers/glass/bottle/abductor/oculine(src)
+	new /obj/item/reagent_containers/glass/bottle/abductor/pen_acid(src)
 
 /obj/item/clothing/glasses/hud/abductor
 	name = "improved glasses"

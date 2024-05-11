@@ -4,7 +4,6 @@
 	shoes = /obj/item/clothing/shoes/combat
 	back = /obj/item/storage/backpack
 	l_ear = /obj/item/radio/headset/abductor
-	gloves = /obj/item/clothing/gloves/combat/abductor
 	glasses = /obj/item/clothing/glasses/hud/abductor
 
 /datum/outfit/abductor/proc/get_team_console(team_number)
@@ -43,6 +42,7 @@
 	head = /obj/item/clothing/head/helmet/abductor
 	suit = /obj/item/clothing/suit/armor/abductor/vest
 	belt = /obj/item/storage/belt/military/abductor/full
+	gloves = /obj/item/clothing/gloves/combat/abductor
 
 	backpack_contents = list(
 		/obj/item/abductor_baton = 1,
@@ -56,6 +56,7 @@
 	belt = /obj/item/storage/belt/medical/surgery/abductor
 	suit = /obj/item/clothing/suit/storage/labcoat/abductor
 	suit_store = /obj/item/abductor/gizmo
+	gloves = /obj/item/clothing/gloves/color/latex/nitrile/abductor
 
 /datum/outfit/abductor/scientist/post_equip(mob/living/carbon/human/H, visualsOnly = FALSE)
 	..()

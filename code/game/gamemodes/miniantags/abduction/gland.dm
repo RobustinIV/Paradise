@@ -24,7 +24,7 @@
 	return
 
 /obj/item/organ/internal/heart/gland/proc/ownerCheck()
-	if(ishuman(owner))
+	if(ishuman(owner) || isalien(owner))
 		return TRUE
 	if(!human_only && iscarbon(owner))
 		return TRUE
