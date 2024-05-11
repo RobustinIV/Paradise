@@ -7,6 +7,7 @@
 	var/datum/action/innate/teleport_self/tele_self_action = new
 	var/datum/action/innate/vest_mode_swap/vest_mode_action = new
 	var/datum/action/innate/vest_disguise_swap/vest_disguise_action = new
+	var/datum/action/innate/vest_camouflage/vest_camouflage_action = new
 	var/datum/action/innate/set_droppoint/set_droppoint_action = new
 	var/obj/machinery/abductor/console/console
 
@@ -55,6 +56,11 @@
 		vest_disguise_action.target = console
 		vest_disguise_action.Grant(user)
 		actions += vest_disguise_action
+
+	if(vest_camouflage_action)
+		vest_camouflage_action.target = console
+		vest_camouflage_action.Grant(user)
+		actions += vest_camouflage_action
 
 	if(set_droppoint_action)
 		set_droppoint_action.target = console
@@ -127,6 +133,16 @@
 		return
 	var/obj/machinery/abductor/console/console = target
 	console.SelectDisguise(TRUE, usr)
+
+/datum/action/innate/vest_camouflage
+	name = "Camouflage Mode"
+	button_icon_state = "vest_camouflage"
+
+/datum/action/innate/vest_camouflage/Activate()
+	if(!target || !iscarbon(owner))
+		return
+	var/obj/machinery/abductor/console/console = target
+	console.Camouflage()
 
 /datum/action/innate/set_droppoint
 	name = "Set Experiment Release Point"

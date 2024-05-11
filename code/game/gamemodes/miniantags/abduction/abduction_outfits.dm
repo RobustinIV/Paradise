@@ -1,9 +1,11 @@
 /datum/outfit/abductor
 	name = "Abductor Basic"
-	uniform = /obj/item/clothing/under/color/grey //they're greys gettit
+	uniform = /obj/item/clothing/under/abductor
 	shoes = /obj/item/clothing/shoes/combat
 	back = /obj/item/storage/backpack
 	l_ear = /obj/item/radio/headset/abductor
+	gloves = /obj/item/clothing/gloves/combat/abductor
+	glasses = /obj/item/clothing/glasses/hud/abductor
 
 /datum/outfit/abductor/proc/get_team_console(team_number)
 	for(var/obj/machinery/abductor/console/C in GLOB.machines)
@@ -25,7 +27,7 @@
 			console.vest = V
 			V.flags |= NODROP
 
-		var/obj/item/abductor/gizmo/G = locate() in H.get_item_by_slot(SLOT_HUD_BACK)
+		var/obj/item/abductor/gizmo/G = locate() in H.get_item_by_slot(SLOT_HUD_SUIT_STORE)
 		if(G)
 			console.gizmo = G
 			G.console = console
@@ -51,9 +53,9 @@
 /datum/outfit/abductor/scientist
 	name = "Abductor Scientist"
 
-	backpack_contents = list(
-		/obj/item/abductor/gizmo = 1
-		)
+	belt = /obj/item/storage/belt/medical/surgery/abductor
+	suit = /obj/item/clothing/suit/storage/labcoat/abductor
+	suit_store = /obj/item/abductor/gizmo
 
 /datum/outfit/abductor/scientist/post_equip(mob/living/carbon/human/H, visualsOnly = FALSE)
 	..()

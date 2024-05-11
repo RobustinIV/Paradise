@@ -98,6 +98,8 @@
 
 		dat+="<br>"
 		dat += "<a href='?src=[UID()];select_disguise=1'>Select Agent Vest Disguise</a><br>"
+		if(vest.mode == ABDUCTOR_VEST_STEALTH)
+			dat += "<a href='?src=[UID()];camouflage=1'>Vest Camouflage Mode [vest.camouflage == FALSE ? "Activate" : "Deactivate"]</a><br>"
 		dat += "<a href='?src=[UID()];toggle_vest=1'>[vest.flags & NODROP ? "Unlock" : "Lock"] Vest</a><br>"
 	else
 		dat += "<span class='bad'>NO AGENT VEST DETECTED</span>"
@@ -121,6 +123,8 @@
 			vest.toggle_nodrop()
 	else if(href_list["select_disguise"])
 		SelectDisguise(FALSE, usr)
+	else if(href_list["camouflage"])
+		Camouflage()
 	else if(href_list["dispense"])
 		switch(href_list["dispense"])
 			if("baton")
@@ -153,10 +157,21 @@
 		vest.flip_mode()
 
 /obj/machinery/abductor/console/proc/SelectDisguise(remote, mob/user)
-	var/entry_name = tgui_input_list(user, "Choose Disguise", "Abductor Disguises", disguises)
-	var/datum/icon_snapshot/chosen = disguises[entry_name]
-	if(chosen && (remote || in_range(user, src)))
-		vest.SetDisguise(chosen)
+	if(length(disguises))
+		var/entry_name = tgui_input_list(user, "Choose Disguise", "Abductor Disguises", disguises)
+		var/datum/icon_snapshot/chosen = disguises[entry_name]
+		if(chosen && (remote || in_range(user, src)))
+			vest.SetDisguise(chosen)
+	else
+		to_chat(user, "<span class='warning'>No available disguises.</span>")
+
+/obj/machinery/abductor/console/proc/Camouflage()
+	if(vest.camouflage)
+		vest.camouflage = FALSE
+	else
+		vest.camouflage = TRUE
+
+	vest.ActivateCamouflage()
 
 /obj/machinery/abductor/console/proc/SetDroppoint(turf/location,user)
 	if(!istype(location))

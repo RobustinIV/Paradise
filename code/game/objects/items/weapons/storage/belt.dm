@@ -218,6 +218,21 @@
 		/obj/item/cautery,
 	)
 
+/obj/item/storage/belt/medical/surgery/abductor
+	name = "science belt"
+	max_combined_w_class = 18
+	storage_slots = 18
+	desc = "A belt used by abductor scientist. Can hold any medicine, abductor related items and surgery tools."
+	icon = 'icons/obj/abductor.dmi'
+	icon_state = "belt"
+	item_state = "security"
+
+	can_hold = list(/obj/item/analyzer, /obj/item/stack/medical, /obj/item/dnainjector, /obj/item/reagent_containers/dropper, /obj/item/reagent_containers/syringe,
+	/obj/item/reagent_containers/hypospray, /obj/item/reagent_containers/applicator, /obj/item/healthanalyzer, /obj/item/flashlight/pen, /obj/item/reagent_containers/glass/bottle,
+	/obj/item/reagent_containers/glass/beaker, /obj/item/reagent_containers/pill, /obj/item/storage/pill_bottle, /obj/item/paper, /obj/item/robotanalyzer, /obj/item/organ, /obj/item/scalpel,
+	/obj/item/hemostat, /obj/item/retractor, /obj/item/circular_saw, /obj/item/surgicaldrill, /obj/item/cautery, /obj/item/bonegel, /obj/item/bonesetter, /obj/item/FixOVein, /obj/item/abductor,
+	/obj/item/organ_extractor/abductor)
+
 /obj/item/storage/belt/medical/surgery/loaded/populate_contents()
 	new /obj/item/scalpel(src)
 	new /obj/item/hemostat(src)
@@ -463,6 +478,8 @@
 	icon = 'icons/obj/abductor.dmi'
 	icon_state = "belt"
 	item_state = "security"
+	storage_slots = 10
+	max_combined_w_class = 10
 
 /obj/item/storage/belt/military/abductor/full/populate_contents()
 	new /obj/item/screwdriver/abductor(src)

@@ -13,11 +13,12 @@
 	blood_overlay_type = "armor"
 	origin_tech = "magnets=7;biotech=4;powerstorage=4;abductor=4"
 	armor = list(MELEE = 10, BULLET = 10, LASER = 10, ENERGY = 10, BOMB = 10, RAD = 10, FIRE = 115, ACID = 115)
-	actions_types = list(/datum/action/item_action/hands_free/activate)
+	actions_types = list(/datum/action/item_action/hands_free/activate/always)
 	allowed = list(/obj/item/abductor, /obj/item/abductor_baton, /obj/item/melee/baton, /obj/item/gun/energy, /obj/item/restraints/handcuffs)
 	var/mode = ABDUCTOR_VEST_STEALTH
 	var/stealth_active = 0
 	var/combat_cooldown = 10
+	var/camouflage = FALSE
 	var/datum/icon_snapshot/disguise
 	var/stealth_armor = list(MELEE = 10, BULLET = 10, LASER = 10, ENERGY = 10, BOMB = 10, RAD = 10, FIRE = 115, ACID = 115)
 	var/combat_armor = list(MELEE = 50, BULLET = 50, LASER = 50, ENERGY = 50, BOMB = 50, RAD = 50, FIRE = 450, ACID = 450)
@@ -38,6 +39,7 @@
 		if(ABDUCTOR_VEST_STEALTH)
 			mode = ABDUCTOR_VEST_COMBAT
 			DeactivateStealth()
+			camouflage = FALSE
 			armor = combat_armor
 			icon_state = "vest_combat"
 		if(ABDUCTOR_VEST_COMBAT)// TO STEALTH
@@ -71,6 +73,25 @@
 		M.overlays = disguise.overlays
 		M.update_inv_r_hand()
 		M.update_inv_l_hand()
+
+/obj/item/clothing/suit/armor/abductor/vest/proc/ActivateCamouflage()
+	if(ishuman(loc))
+		var/mob/living/carbon/human/user = loc
+
+		if(camouflage)
+			animate(user, alpha = 60, time = 2 SECONDS)
+
+			user.visible_message(
+				"<span class='warning'>[user] becomes translucent!</span>",
+				"<span class='notice'>Camouflage activated.</span>",
+	      	)
+		else
+			animate(user, alpha = 255, time = 4 SECONDS)
+
+			user.visible_message(
+				"<span class='warning'>[user] appears from air!</span>",
+				"<span class='notice'>Camouflage deactivated.</span>",
+	      	)
 
 /obj/item/clothing/suit/armor/abductor/vest/proc/DeactivateStealth()
 	if(!stealth_active)
@@ -107,12 +128,18 @@
 			return
 		var/mob/living/carbon/human/M = loc
 		M.adjustStaminaLoss(-75)
+		M.SetSleeping(0)
 		M.SetParalysis(0)
 		M.SetStunned(0)
 		M.SetWeakened(0)
 		M.SetKnockDown(0)
 		M.stand_up(TRUE)
+		M.reagents.add_reagent("synaptizine", 2)
+		M.reagents.add_reagent("epinephrine", 2)
+		M.reagents.add_reagent("omnizine", 2)
+		M.reagents.add_reagent("synthflesh", 2)
 		combat_cooldown = 0
+		to_chat(loc, "<span class='warning'>Combat injection activated.</span>")
 		START_PROCESSING(SSobj, src)
 
 /obj/item/clothing/suit/armor/abductor/vest/process()
@@ -395,6 +422,7 @@ Congratulations! You are now trained for invasive xenobiology research!"}
 	name = "advanced baton"
 	desc = "A quad-mode baton used for incapacitation and restraining of specimens."
 	var/mode = BATON_STUN
+	var/text_mode
 	icon = 'icons/obj/abductor.dmi'
 	lefthand_file = 'icons/mob/inhands/weapons_lefthand.dmi'
 	righthand_file = 'icons/mob/inhands/weapons_righthand.dmi'
@@ -404,6 +432,10 @@ Congratulations! You are now trained for invasive xenobiology research!"}
 	origin_tech = "materials=4;combat=4;biotech=7;abductor=4"
 	w_class = WEIGHT_CLASS_NORMAL
 	actions_types = list(/datum/action/item_action/toggle_mode)
+
+/obj/item/abductor_baton/Initialize(mapload)
+	. = ..()
+	AddComponent(/datum/component/parry, _stamina_constant = 2, _stamina_coefficient = 0.5, _parryable_attack_types = ALL_ATTACK_TYPES)
 
 /obj/item/abductor_baton/proc/toggle(mob/living/user = usr)
 	mode = (mode+1)%BATON_MODES
@@ -477,7 +509,7 @@ Congratulations! You are now trained for invasive xenobiology research!"}
 		H.update_inv_l_hand()
 		H.update_inv_r_hand()
 
-/obj/item/abductor_baton/proc/StunAttack(mob/living/L,mob/living/user)
+/obj/item/abductor_baton/proc/StunAttack(mob/living/L, mob/living/user)
 	L.lastattacker = user.real_name
 	L.lastattackerckey = user.ckey
 
@@ -485,13 +517,18 @@ Congratulations! You are now trained for invasive xenobiology research!"}
 	L.Weaken(14 SECONDS)
 	L.Stuttering(14 SECONDS)
 
+	var/datum/antagonist/vampire/vamp = L.mind.has_antag_datum(/datum/antagonist/vampire)
+	var/mob/living/carbon/human/H = user
+	if(vamp && istype(H.dna.species, /datum/species/abductor)) //no overshitcurs
+		vamp.adjust_nullification(40, 8) //advanced techonologies can even block vampipes powers yep lol
+
 	L.visible_message("<span class='danger'>[user] has stunned [L] with [src]!</span>", \
 							"<span class='userdanger'>[user] has stunned you with [src]!</span>")
 	playsound(loc, 'sound/weapons/egloves.ogg', 50, 1, -1)
 
 	add_attack_logs(user, L, "Stunned with [src]")
 
-/obj/item/abductor_baton/proc/SleepAttack(mob/living/L,mob/living/user)
+/obj/item/abductor_baton/proc/SleepAttack(mob/living/L, mob/living/user)
 	if(L.IsStunned() || L.IsSleeping())
 		L.visible_message("<span class='danger'>[user] has induced sleep in [L] with [src]!</span>", \
 							"<span class='userdanger'>You suddenly feel very drowsy!</span>")
@@ -504,7 +541,7 @@ Congratulations! You are now trained for invasive xenobiology research!"}
 		L.visible_message("<span class='danger'>[user] tried to induce sleep in [L] with [src]!</span>", \
 							"<span class='userdanger'>You suddenly feel drowsy!</span>")
 
-/obj/item/abductor_baton/proc/CuffAttack(mob/living/L,mob/living/user)
+/obj/item/abductor_baton/proc/CuffAttack(mob/living/L, mob/living/user)
 	if(!iscarbon(L))
 		return
 	var/mob/living/carbon/C = L
@@ -521,7 +558,7 @@ Congratulations! You are now trained for invasive xenobiology research!"}
 		else
 			to_chat(user, "<span class='warning'>You fail to handcuff [C].</span>")
 
-/obj/item/abductor_baton/proc/ProbeAttack(mob/living/L,mob/living/user)
+/obj/item/abductor_baton/proc/ProbeAttack(mob/living/L, mob/living/user)
 	L.visible_message("<span class='danger'>[user] probes [L] with [src]!</span>", \
 						"<span class='userdanger'>[user] probes you!</span>")
 
@@ -530,16 +567,78 @@ Congratulations! You are now trained for invasive xenobiology research!"}
 
 	if(ishuman(L))
 		var/mob/living/carbon/human/H = L
-		species = "<span clas=='notice'>[H.dna.species.name]</span>"
+		species = "<span clas=='notice'>It is a [H.dna.species.name].</span>"
+		if(locate(/obj/item/organ/internal/cyberimp/brain/anti_sleep) in H.internal_organs)
+			species += "\n<span clas=='notice'>Subject's body contains sleeping prevention implant.</span>"
+		if(locate(/obj/item/organ/internal/cyberimp/brain/anti_stam) in H.internal_organs)
+			species += "\n<span clas=='notice'>Subject's body contains stun reduce implant.</span>"
+		if(locate(/obj/item/organ/internal/cyberimp/brain/sensory_enhancer) in H.internal_organs || locate(/obj/item/bio_chip/adrenalin) in H || locate(/obj/item/bio_chip/proto_adrenalin) in H || locate(/obj/item/bio_chip/supercharge) in H)
+			species += "\n<span clas=='notice'>Subject's body contains adrenaline biochip/implant.</span>"
+		if(locate(/obj/item/bio_chip/freedom) in H)
+			species += "\n<span clas=='notice'>Subject's body contains handcuffs destruction implant.</span>"
 		if(ischangeling(L))
-			species = "<span class='warning'>Changeling lifeform</span>"
+			species = "<span class='warning'>Changeling lifeform in [H.dna.species.name] disguise.</span>"
+			var/datum/antagonist/changeling/ling = L.mind.has_antag_datum(/datum/antagonist/changeling)
+			var/redflags = 0
+			species += "\n<span class='warning'>Current chemical storage capacity: [ling.chem_charges]</span>"
+			species += "\n<span class='warning'>Current mutation points: [ling.genetic_points]</span>"
+			if(ling.regenerating)
+				species += "\n<span class='danger'>The subject is in regenerative stasis, it can awake at any moment.</span>"
+				redflags++
+			if(locate(/datum/action/changeling/epinephrine) in ling.acquired_powers)
+				species += "\n<span class='danger'>A sudden awakening mutation has been detected.</span>"
+				redflags++
+			if(locate(/datum/action/changeling/biodegrade) in ling.acquired_powers)
+				species += "\n<span class='danger'>A mutation of handcuffs destruction has been detected.</span>"
+				redflags++
+			if(locate(/datum/action/changeling/lesserform) in ling.acquired_powers)
+				species += "\n<span class='danger'>A mutation of changing genetic code to primitive form detected. Subject can slip out from handcuffs.</span>"
+				redflags++
+			if(locate(/datum/action/changeling/headslug) in ling.acquired_powers)
+				species += "\n<span class='danger'>The parasite can come out at any moment.</span>"
+				redflags++
+			if(redflags > 1)
+				species += "\n<span class='danger'>The subject is not recommended for experiments.</span>"
+			else
+				species += "\n<span class='warning'>Mutations that could interfere with the experiment were not detected.</span>"
+				species += "\n<span class='danger'>It is recommended to be faster, the subject can activate regenerative stasis.</span>"
+
+		if(L.mind.has_antag_datum(/datum/antagonist/vampire))
+			var/datum/antagonist/vampire/vamp = L.mind.has_antag_datum(/datum/antagonist/vampire)
+			species += "\n<span class='warning'>The subject's body accepts only blood as nutriment.</span>"
+			species += "\n<span class='warning'>Subject can awake at any second and interfere experiment with stunning glare.</span>"
+			species += "\n<span class='warning'>The amount of foreign blood: [vamp.bloodusable]</span>"
+			species += "\n<span class='warning'>The total number of traces of foreign blood: [vamp.bloodtotal]</span>"
+			if(vamp.get_ability(/datum/vampire_passive/full))
+				species += "\n<span class='danger'>Subject is very dangerous.</span>"
+
+		if(isalien(L))
+			if(islarva(L))
+				var/mob/living/carbon/alien/larva/larv = L
+				species = "<span class='warning'>Subject is useless for our experiments. Age: [larv.amount_grown]</span>"
+			if(isalienadult(L))
+				species = "<span class='warning'>Xenomorph lifeform.</span>"
+				var/mob/living/carbon/alien/humanoid/xeno = L
+				var/caste
+				if(xeno.caste == "d")
+					caste = "builder"
+				if(xeno.caste == "h")
+					caste = "humanoidcatcher"
+				if(xeno.caste == "s")
+					caste = "vindicator"
+				if(xeno.caste == "q")
+					caste = "matriarch"
+
+				species += "\n<span class='warning'>It is a [caste].</span>"
+
 		var/obj/item/organ/internal/heart/gland/temp = locate() in H.internal_organs
-		if(temp)
+		if(temp && !islarva(L))
 			helptext = "<span class='warning'>Experimental gland detected!</span>"
 		else
 			helptext = "<span class='notice'>Subject suitable for experiments.</span>"
 
-	to_chat(user,"<span class='notice'>Probing result: </span>[species]")
+	to_chat(user, "<span class='notice'>Probing result: </span>")
+	to_chat(user, "[species]")
 	to_chat(user, "[helptext]")
 
 /obj/item/restraints/handcuffs/energy
@@ -562,15 +661,19 @@ Congratulations! You are now trained for invasive xenobiology research!"}
 
 /obj/item/abductor_baton/examine(mob/user)
 	. = ..()
+	text_mode = "unknown"
+
 	switch(mode)
 		if(BATON_STUN)
-			. += "<span class='warning'>The baton is in stun mode.</span>"
+			text_mode = "stun"
 		if(BATON_SLEEP)
-			. += "<span class='warning'>The baton is in sleep inducement mode.</span>"
+			text_mode = "sleep inducement"
 		if(BATON_CUFF)
-			. += "<span class='warning'>The baton is in restraining mode.</span>"
+			text_mode = "restraining"
 		if(BATON_PROBE)
-			. += "<span class='warning'>The baton is in probing mode.</span>"
+			text_mode = "probing"
+
+	. += "<span class='warning'>The baton is in [text_mode] mode.</span>"
 
 /obj/item/radio/headset/abductor
 	name = "alien headset"
@@ -588,6 +691,23 @@ Congratulations! You are now trained for invasive xenobiology research!"}
 
 /obj/item/radio/headset/abductor/screwdriver_act()
 	return// Stops humans from disassembling abductor headsets.
+
+/obj/item/clothing/suit/storage/labcoat/abductor
+	name = "progressive labcoat"
+	desc = "Non-polluting, incredibly sterile, completely acid-proof and slightly armored. The Apex Labcoat."
+	allowed = list(/obj/item/analyzer, /obj/item/stack/medical, /obj/item/dnainjector, /obj/item/reagent_containers/dropper, /obj/item/reagent_containers/syringe,
+	/obj/item/reagent_containers/hypospray, /obj/item/reagent_containers/applicator, /obj/item/healthanalyzer, /obj/item/flashlight/pen, /obj/item/reagent_containers/glass/bottle,
+	/obj/item/reagent_containers/glass/beaker, /obj/item/reagent_containers/pill, /obj/item/storage/pill_bottle, /obj/item/paper, /obj/item/robotanalyzer, /obj/item/organ, /obj/item/scalpel,
+	/obj/item/hemostat, /obj/item/retractor, /obj/item/circular_saw, /obj/item/surgicaldrill, /obj/item/cautery, /obj/item/bonegel, /obj/item/bonesetter, /obj/item/FixOVein, /obj/item/abductor,
+	/obj/item/organ_extractor/abductor)
+	armor = list(MELEE = 6, BULLET = 6, LASER = 6, ENERGY = 6, BOMB = 6, RAD = 60, FIRE = 100, ACID = INFINITY)
+	icon_state = "labcoat_abductor_open"
+	item_state = "labcoat_abductor_open"
+	species_exception = null
+	can_leave_fibers = FALSE
+
+/obj/item/clothing/suit/storage/labcoat/abductor/add_blood(list/blood_dna, b_color)
+	return
 
 /obj/item/scalpel/alien
 	name = "alien scalpel"
@@ -665,6 +785,100 @@ Congratulations! You are now trained for invasive xenobiology research!"}
 	sprite_sheets = list(
 		"Vox" = 'icons/mob/clothing/species/vox/head.dmi'
 		)
+
+/obj/item/clothing/under/abductor
+	name = "enhanced jumpsuit"
+	desc = "Sterile and armored. It has a built-in species check."
+	icon = 'icons/obj/abductor.dmi'
+	icon_state = "enhanced"
+	item_state = "enhanced_s"
+	item_color = "enhanced"
+	has_sensor = FALSE
+	armor = list(MELEE = 10, BULLET = 10, LASER = 10, ENERGY = 10, BOMB = 5, RAD = 10, FIRE = 60, ACID = 60)
+	flags = NODROP
+	can_leave_fibers = FALSE
+
+	sprite_sheets = list(
+		"Abductor" = 'icons/mob/clothing/under/misc.dmi'
+		)
+
+/obj/item/clothing/under/abductor/add_blood(list/blood_dna, b_color)
+	return
+
+/obj/item/clothing/gloves/combat/abductor
+	name = "high-tech gloves"
+	desc = "Universal thick gloves with insulation and heat protection, very sterile and reflects any blood on it's surface. Doesn't have any fibers."
+	icon = 'icons/obj/abductor.dmi'
+	icon_state = "high_tech"
+	item_state = "high_tech"
+	can_leave_fibers = FALSE
+	transfer_prints = FALSE
+	origin_tech = "magnets=1;abductor=2"
+	pickpocket = 1
+	permeability_coefficient = 0
+	armor = list(MELEE = 10, BULLET = 10, LASER = 10, ENERGY = 10, BOMB = 5, RAD = 10, FIRE = 400, ACID = 10)
+	strip_delay = 160
+	safe_from_poison = TRUE
+
+/obj/item/clothing/gloves/combat/abductor/add_blood(list/blood_dna, b_color)
+	return
+
+/obj/item/clothing/glasses/hud/abductor
+	name = "improved glasses"
+	desc = "An advanced glasses with everything you need. Protects from all kind of flashes."
+	icon = 'icons/obj/abductor.dmi'
+	icon_state = "improved_glasses"
+	item_state = "improved_glasses"
+	see_in_dark = 16
+	origin_tech = "abductor=1"
+	flash_protect = INFINITY
+	hud_types = list(DATA_HUD_MEDICAL_ADVANCED, DATA_HUD_DIAGNOSTIC_ADVANCED, DATA_HUD_SECURITY_ADVANCED)
+	examine_extensions = list(EXAMINE_HUD_SECURITY_READ, EXAMINE_HUD_MEDICAL_READ, EXAMINE_HUD_SKILLS) //no write cus abductees` objective is always to avoid sabotages
+	var/list/antag_show = list(ANTAG_HUD_CHANGELING, ANTAG_HUD_VAMPIRE) //only biological ones
+
+	prescription_upgradable = TRUE
+	scan_reagents = TRUE
+	resistance_flags = ACID_PROOF
+	armor = list(MELEE = 20, BULLET = 20, LASER = 20, ENERGY = 20, BOMB = 10, RAD = 20, FIRE = 400, ACID = INFINITY)
+
+	sprite_sheets = list(
+		"Vox" = 'icons/mob/clothing/species/vox/eyes.dmi',
+		"Grey" = 'icons/mob/clothing/species/grey/eyes.dmi',
+		"Drask" = 'icons/mob/clothing/species/drask/eyes.dmi',
+		"Kidan" = 'icons/mob/clothing/species/kidan/eyes.dmi'
+		)
+	actions_types = list(/datum/action/item_action/toggle_research_scanner)
+
+/obj/item/clothing/glasses/hud/abductor/add_blood(list/blood_dna, b_color)
+	return
+
+/obj/item/clothing/glasses/hud/abductor/emp_act(severity)
+	return
+
+/obj/item/clothing/glasses/hud/abductor/equipped(mob/living/carbon/human/user, slot)
+	..()
+	if(istype(user.dna.species, /datum/species/abductor))
+		add_things(user)
+
+/obj/item/clothing/glasses/hud/abductor/dropped(mob/living/carbon/human/user, slot)
+	..()
+	if(istype(user.dna.species, /datum/species/abductor))
+		remove_things(user)
+
+/obj/item/clothing/glasses/hud/abductor/proc/add_things(mob/user)
+	lighting_alpha = LIGHTING_PLANE_ALPHA_INVISIBLE
+	ADD_TRAIT(user, TRAIT_XRAY_VISION, "improved_glasses[UID()]")
+
+	for(var/datum/atom_hud/antag/H in antag_show)
+		H.add_hud_to(user)
+
+/obj/item/clothing/glasses/hud/abductor/proc/remove_things(mob/user)
+	lighting_alpha = initial(lighting_alpha)
+	REMOVE_TRAIT(user, TRAIT_XRAY_VISION, "improved_glasses[UID()]")
+
+	for(var/datum/atom_hud/antag/H in antag_show)
+		H.remove_hud_from(user)
+
 // Operating Table / Beds / Lockers
 
 /obj/structure/bed/abductor
