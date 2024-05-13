@@ -494,7 +494,13 @@
 		target.help_shake_act(user)
 		return TRUE
 	else
-		user.do_cpr(target)
+		var/obj/item/clothing/gloves/color/latex/nitrile/abductor/A = user.gloves
+		if(!A)
+			user.do_cpr(target)
+		else
+			if(A.activated)
+				var/datum/component/defib/D = A.GetComponent(/datum/component/defib)
+				D.defibrillate(user, target)
 
 /datum/species/proc/grab(mob/living/carbon/human/user, mob/living/carbon/human/target, datum/martial_art/attacker_style)
 	if(target.check_block())

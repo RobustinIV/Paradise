@@ -1586,3 +1586,37 @@
 	update_flags |= M.adjustFireLoss(3*REAGENTS_EFFECT_MULTIPLIER, FALSE)
 	update_flags |= M.adjustToxLoss(3*REAGENTS_EFFECT_MULTIPLIER, FALSE)
 	return ..() | update_flags
+
+/datum/reagent/medicine/enginidrizine
+	name = "Enginidrizine"
+	id = "enginidrizine"
+	description = "Unknown reagent. Effectively removes toxins and radiation without side effects."
+	color = "#4a5b54" //rgb: 74, 91, 84
+
+/datum/reagent/medicine/enginidrizine/on_mob_life(mob/living/carbon/M)
+	var/update_flags = STATUS_UPDATE_NONE
+	M.radiation = max(0, M.radiation-200)
+	update_flags |= M.adjustToxLoss(-20*REAGENTS_EFFECT_MULTIPLIER, FALSE)
+	return ..() | update_flags
+
+/datum/reagent/medicine/omnizine/plus
+	name = "Omnizine Plus"
+	id = "omnizine_plus"
+	description = "An advanced reagent with an unknown recipe. In fact, it is the same omnizine, but more effective and without side effects."
+	color = "#C8A5DC"
+	metabolization_rate = 0.4
+	overdose_threshold = 0
+	addiction_chance = 0
+	addiction_chance_additional = 0
+	addiction_threshold = 0
+	harmless = TRUE
+
+/datum/reagent/medicine/omnizine/plus/on_mob_life(mob/living/M)
+	var/update_flags = STATUS_UPDATE_NONE
+	update_flags |= M.adjustToxLoss(-2*REAGENTS_EFFECT_MULTIPLIER, FALSE)
+	update_flags |= M.adjustOxyLoss(-2*REAGENTS_EFFECT_MULTIPLIER, FALSE)
+	update_flags |= M.adjustBruteLoss(-4*REAGENTS_EFFECT_MULTIPLIER, FALSE)
+	update_flags |= M.adjustFireLoss(-4*REAGENTS_EFFECT_MULTIPLIER, FALSE)
+	if(prob(80))
+		M.AdjustLoseBreath(-4 SECONDS)
+	return ..() | update_flags

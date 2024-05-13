@@ -166,6 +166,8 @@
 		to_chat(user, "<span class='warning'>No available disguises.</span>")
 
 /obj/machinery/abductor/console/proc/Camouflage()
+	if(!vest)
+		return
 	if(vest.camouflage)
 		vest.camouflage = FALSE
 	else

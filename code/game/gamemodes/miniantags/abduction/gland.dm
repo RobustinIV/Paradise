@@ -348,3 +348,35 @@
 		if(istype(T))
 			T.atmos_spawn_air(LINDA_SPAWN_TOXINS|LINDA_SPAWN_20C,50)
 		owner.vomit()
+
+/obj/item/organ/internal/heart/gland/jam
+	cooldown_low = 200
+	cooldown_high = 400
+	uses = -1
+	icon_state = "jam"
+	mind_control_uses = 4
+	mind_control_duration = 4800
+	var/activated = FALSE
+	var/range = 12
+
+	var/disable_low
+	var/disable_high
+
+/obj/item/organ/internal/heart/gland/jam/Initialize(mapload)
+
+	disable_low = cooldown_low / 2
+	disable_high = cooldown_high / 2
+
+/obj/item/organ/internal/heart/gland/jam/activate()
+	activated = TRUE
+	addtimer(CALLBACK(src, PROC_REF(deactivate)), rand(disable_low, disable_high) SECONDS)
+
+/obj/item/organ/internal/heart/gland/jam/proc/deactivate()
+	activated = FALSE
+
+/mob/living/is_jammed()
+	..()
+	var/mob/living/carbon/human/H = src
+	var/obj/item/organ/internal/heart/gland/jam/J = locate(/obj/item/organ/internal/heart/gland/jam) in H.internal_organs
+	if(J && J.activated && atoms_share_level(get_turf(src), get_turf(J)) && get_dist(get_turf(src), get_turf(J)) <= J.range)
+		return TRUE

@@ -46,6 +46,7 @@
 
 	backpack_contents = list(
 		/obj/item/abductor_baton = 1,
+		/obj/item/clothing/accessory/holster = 1,
 		/obj/item/gun/energy/alien = 1,
 		/obj/item/abductor/silencer = 1
 		)

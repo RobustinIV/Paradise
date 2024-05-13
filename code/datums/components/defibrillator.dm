@@ -24,6 +24,10 @@
 	var/emag_proof
 	/// uid to an item that should be making noise and handling things that our direct parent shouldn't be concerned with.
 	var/actual_unit_uid
+	/// used by the gloves of the abductor-scientist after resuscitation, injects some necessary reagents such as epineprhine, mannitol and etc.
+	var/abductor = FALSE
+	/// Actually, the gloves themselves, need to resusciate someone who can't be defibrilated
+	var/obj/item/clothing/gloves/color/latex/nitrile/abductor/gloves
 
 /**
  * Create a new defibrillation component.
@@ -39,7 +43,7 @@
  * * emag_proof - If true, safety won't be switched by emag. Note that the device itself can still have behavior from it, it's just that the component will not.
  * * actual_unit - Unit which the component's parent is based from, such as a large defib unit or a borg. The actual_unit will make the sounds and be the "origin" of visible messages, among other things.
  */
-/datum/component/defib/Initialize(robotic, cooldown = 5 SECONDS, speed_multiplier = 1, combat = FALSE, heart_attack_chance = 100, safe_by_default = TRUE, emp_proof = FALSE, emag_proof = FALSE, obj/item/actual_unit = null)
+/datum/component/defib/Initialize(robotic, cooldown = 5 SECONDS, speed_multiplier = 1, combat = FALSE, heart_attack_chance = 100, safe_by_default = TRUE, emp_proof = FALSE, emag_proof = FALSE, obj/item/actual_unit = null, abductor = FALSE, gloves = null)
 	if(!isitem(parent))
 		return COMPONENT_INCOMPATIBLE
 
@@ -51,6 +55,8 @@
 	safety = safe_by_default
 	src.emp_proof = emp_proof
 	src.emag_proof = emag_proof
+	src.abductor = abductor
+	src.gloves = gloves
 
 	if(actual_unit)
 		actual_unit_uid = actual_unit.UID()
@@ -243,30 +249,45 @@
 	// Run through some quick failure states after shocking.
 	var/time_dead = world.time - target.timeofdeath
 
+	var/abductorable = TRUE // if target is dead more than 5 minutes than abductor scientist gloves using lazarus reagent
+
 	if(!target.is_revivable())
 		user.visible_message("<span class='boldnotice'>[defib_ref] buzzes: Resuscitation failed - Heart tissue damage beyond point of no return for defibrillation.</span>")
 		defib_success = FALSE
-	else if(target.getBruteLoss() >= 180 || target.getFireLoss() >= 180)
+	else if(target.getBruteLoss() >= 180 || target.getFireLoss() >= 180 && !abductor)
 		user.visible_message("<span class='boldnotice'>[defib_ref] buzzes: Resuscitation failed - Severe tissue damage detected.</span>")
 		defib_success = FALSE
 	else if(HAS_TRAIT(target, TRAIT_HUSK))
-		user.visible_message("<span class='boldnotice'>[defib_ref] buzzes: Resuscitation failed - Subject is husked.</span>")
-		defib_success = FALSE
+		if(abductor)
+			target.cure_husk()
+		else
+			user.visible_message("<span class='boldnotice'>[defib_ref] buzzes: Resuscitation failed - Subject is husked.</span>")
+			defib_success = FALSE
 	else if(target.blood_volume < BLOOD_VOLUME_SURVIVE)
-		user.visible_message("<span class='boldnotice'>[defib_ref] buzzes: Resuscitation failed - Patient blood volume critically low.</span>")
-		defib_success = FALSE
+		if(abductor)
+			target.blood_volume = BLOOD_VOLUME_BAD
+		else
+			user.visible_message("<span class='boldnotice'>[defib_ref] buzzes: Resuscitation failed - Patient blood volume critically low.</span>")
+			defib_success = FALSE
 	else if(!target.get_organ_slot("brain"))  // So things like headless clings don't get outed
 		user.visible_message("<span class='boldnotice'>[defib_ref] buzzes: Resuscitation failed - No brain detected within patient.</span>")
 		defib_success = FALSE
+		abductorable = FALSE
 	else if(ghost)
 		if(!ghost.can_reenter_corpse || target.suiciding) // DNR or AntagHUD
 			user.visible_message("<span class='boldnotice'>[defib_ref] buzzes: Resuscitation failed - No electrical brain activity detected.</span>")
 		else
 			user.visible_message("<span class='boldnotice'>[defib_ref] buzzes: Resuscitation failed - Patient's brain is unresponsive. Further attempts may succeed.</span>")
 		defib_success = FALSE
+		abductorable = FALSE
 	else if((signal_result & COMPONENT_BLOCK_DEFIB) || HAS_TRAIT(target, TRAIT_FAKEDEATH) || HAS_TRAIT(target, TRAIT_BADDNA) || target.suiciding)  // these are a bit more arbitrary
 		user.visible_message("<span class='boldnotice'>[defib_ref] buzzes: Resuscitation failed.</span>")
 		defib_success = FALSE
+		abductorable = FALSE
+
+	if(!defib_success && abductorable && abductor)
+		gloves.resus(target)
+		return
 
 	if(!defib_success)
 		playsound(get_turf(defib_ref), 'sound/machines/defib_failed.ogg', 50, 0)
@@ -288,6 +309,8 @@
 		target.KnockOut()
 		target.Paralyse(10 SECONDS)
 		target.emote("gasp")
+
+		abductor_heal(target, heal_amount)
 
 		if(target.getBrainLoss() >= 100)
 			// If you want to treat this with mannitol, it'll have to metabolize while the patient is alive, so it's alright to bring them back up for a minute
@@ -316,6 +339,37 @@
 	SEND_SIGNAL(parent, COMSIG_DEFIB_SHOCK_APPLIED, user, target, should_cause_harm, defib_success)
 	set_cooldown(cooldown)
 	busy = FALSE
+
+/datum/component/defib/proc/abductor_heal(mob/living/carbon/human/target, heal_amount)
+
+	target.reagents.add_reagent("mannitol", 10)
+	target.reagents.add_reagent("mitocholide", 5)
+	target.reagents.add_reagent("salbutamol", 2)
+	target.reagents.add_reagent("salglu_solution", 2)
+	target.reagents.add_reagent("enginidrizine", 2)
+	target.reagents.add_reagent("omnizine_plus", 1)
+
+	target.reagents.remove_reagent("perfluorodecalin", INFINITY)
+	target.reagents.add_reagent("perfluorodecalin", 1)
+	//to prevent overdose
+	target.reagents.remove_reagent("epinephrine", INFINITY)
+	target.reagents.add_reagent("epinephrine", 6)
+
+	target.reagents.remove_reagent("sanguine_reagent", INFINITY)
+	target.reagents.add_reagent("sanguine_reagent", 2)
+
+	target.reagents.remove_reagent("rezadone", INFINITY)
+	target.reagents.add_reagent("rezadone", 2)
+
+	target.adjustOxyLoss(-heal_amount / 2)
+	target.adjustToxLoss(-heal_amount / 2)
+	target.adjustFireLoss(-heal_amount / 2)
+	target.adjustBruteLoss(-heal_amount / 2)
+
+	target.Paralyse(10 SECONDS) //but paralyses stronger
+
+	if(!istype(target.dna.species, /datum/species/abductor))
+		target.Sleeping(60 SECONDS)
 
 /**
  * Inflict stamina loss (and possibly inflict cardiac arrest) on someone.
