@@ -181,7 +181,7 @@
 /datum/action/changeling/weapon/fleshy_maul
 	name = "Fleshy Maul"
 	desc = "We reform one of our arms into a enourmous maul. Costs 20 chemicals."
-	helptext = "We may retract our maul in the same manner as we form it. Cannot be used while in lesser form."
+	helptext = "We may retract our maul in the same manner as we form it. Spends a little chemicals on every hit. Cannot be used while in lesser form."
 	button_icon_state = "fleshy_maul"
 	power_type = CHANGELING_PURCHASABLE_POWER
 	dna_cost = 4
@@ -203,13 +203,34 @@
 	hitsound = "swing_hit"
 	reach = 1
 
+/obj/item/melee/arm_blade/fleshy_maul/proc/chemicals_use(atom/target, mob/living/user)
+
+	var/datum/antagonist/changeling/ling = user.mind?.has_antag_datum(/datum/antagonist/changeling)
+
+	if(ling.chem_storage <= 4)
+		to_chat(user, "<span class='changeling'>We have too few chemicals...</span>")
+	else
+		ling.chem_storage -= rand(1,2)
+
 /obj/item/melee/arm_blade/fleshy_maul/Initialize(mapload, silent, new_parent_action)
 	. = ..()
 	REMOVE_TRAIT(src, TRAIT_FORCES_OPEN_DOORS_ITEM, ROUNDSTART_TRAIT)
 
+/obj/item/melee/arm_blade/fleshy_maul/attack(atom/A, mob/living/user, params)
+
+	if(!ismob(A))
+		if(!do_after_once(user, rand(1,2), target = A))
+			return
+		else
+			chemicals_use(A, user)
+
+	..()
+
 /obj/item/melee/arm_blade/fleshy_maul/afterattack(atom/target, mob/living/user, proximity)
 	if(get_dist(target, user) > reach && proximity)
 		return
+
+	chemicals_use(target, user)
 
 	if(isstructure(target))
 		var/obj/structure/S = target
@@ -218,21 +239,21 @@
 				var/obj/structure/table/T = target
 				T.deconstruct(FALSE)
 				return
-			S.attack_generic(user, 40, BRUTE, "melee", 0)
+			S.attack_generic(user, 60, BRUTE, "melee", 0)
 
 	else if(istype(target, /obj/machinery) && !istype(target, /obj/machinery/door))
 		var/obj/machinery/M = target
-		M.attack_generic(user, 50, BRUTE, "melee", 0)
+		M.attack_generic(user, 80, BRUTE, "melee", 0)
 
 	else if(iswallturf(target))
 		var/turf/simulated/wall/wall = target
-		wall.take_damage(30)
+		wall.take_damage(60)
 		user.do_attack_animation(wall)
 		playsound(src, 'sound/weapons/smash.ogg', 50, TRUE)
 
 	else if(istype(target, /obj/machinery/door))
 		var/obj/machinery/door/airlock/door = target
-		door.take_damage(30, sound_effect = FALSE)
+		door.take_damage(60, sound_effect = FALSE)
 
 	else if(isliving(target) && target != user)
 		var/mob/living/M = target
