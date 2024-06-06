@@ -555,6 +555,26 @@
 	else
 		..(speaker,message)
 
+/datum/language/psionic_bond
+	name = "Psionic Bond"
+	desc = "Despite being suspicious of each other, young changelings are always attaches to their parents (even if they are not actually a changeling or/and a parent) by a special psionic bond where they can communicate with each other. However, after a few hours, such a connection abrupts. Forever."
+	speech_verb = "says"
+	colour = "changeling"
+	key = "pb"
+	flags = RESTRICTED | HIVEMIND | NOBABEL
+	follow = TRUE
+
+/datum/language/psionic_bond/broadcast(mob/living/speaker, message, speaker_mask)
+	var/datum/antagonist/changeling/cling = speaker.mind?.has_antag_datum(/datum/antagonist/changeling)
+	if(cling)
+		..(speaker, message, cling.changelingID)
+	else
+		..(speaker, message)
+
+/datum/language/psionic_bond/check_special_condition(mob/living/other, mob/living/speaker)
+	if(locate(other) in speaker.mind.psionic_bond && locate(speaker) in other.mind.psionic_bond)
+		return TRUE
+	return FALSE
 
 /datum/language/abductor
 	name = "Abductor Mindlink"

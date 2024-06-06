@@ -1047,6 +1047,10 @@ GLOBAL_LIST_INIT(slot_equipment_priority, list( \
 		switch(picked)
 			if("Mouse")
 				become_mouse()
+			else if(istype(picked, /mob/living/simple_animal/hostile/headslug/young))
+				var/mob/living/simple_animal/hostile/headslug/young/slug = picked
+				slug.key = key
+				slug.make_psionic_bond(slug.parent.current)
 			else
 				var/mob/living/NPC = picked
 				if(istype(NPC) && !NPC.key)

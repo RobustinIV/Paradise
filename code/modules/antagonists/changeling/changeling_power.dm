@@ -26,7 +26,10 @@
 	var/active = FALSE
 	/// If this power can be used while the changeling has the `TRAIT_FAKE_DEATH` trait.
 	var/bypass_fake_death = FALSE
+	// for young headslugs' cheaper and weaker powers
+	var/young = FALSE
 
+	var/young_coeff = 1
 /*
  * Changeling code relies on on_purchase to grant powers.
  * The same goes for Remove(). if you override Remove(), call parent or else your power wont be removed on respec

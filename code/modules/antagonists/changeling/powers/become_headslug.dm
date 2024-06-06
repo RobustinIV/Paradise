@@ -22,10 +22,10 @@
 	user.visible_message("<span class='danger'>A loud crack erupts from [user], followed by a hiss.</span>")
 	playsound(get_turf(user), "bonebreak", 75, TRUE)
 	playsound(get_turf(user), 'sound/machines/hiss.ogg', 75, TRUE)
-	addtimer(CALLBACK(src, PROC_REF(become_headslug), user), 5 SECONDS)
+	addtimer(CALLBACK(src, PROC_REF(become_headslug), user), 5 SECONDS / young_coeff)
 	var/matrix/M = user.transform
 	M.Scale(1.8, 1.2)
-	animate(user, time = 5 SECONDS, transform = M, easing = SINE_EASING)
+	animate(user, time = 5 SECONDS / young_coeff, transform = M, easing = SINE_EASING) //young headslugs returns to their form slighlty faster
 
 /datum/action/changeling/headslug/proc/become_headslug(mob/user)
 	var/datum/mind/M = user.mind
@@ -48,7 +48,15 @@
 		S.Weaken(6 SECONDS)
 	var/turf/our_turf = get_turf(user)
 	spawn(5) // So it's not killed in explosion
-		var/mob/living/simple_animal/hostile/headslug/crab = new(our_turf)
+		var/mob/living/simple_animal/hostile/headslug/crab
+		if(!young)
+			crab = new /mob/living/simple_animal/hostile/headslug(our_turf)
+		else if (young)
+			var/datum/antagonist/changeling/young/syndie/clingy = crab.mind.has_antag_datum(/datum/antagonist/changeling/young)
+			if(clingy)
+				crab = new /mob/living/simple_animal/hostile/headslug/young(our_turf)
+			else
+				crab = new /mob/living/simple_animal/hostile/headslug/young/syndie(our_turf)
 		for(var/obj/item/organ/internal/I in organs)
 			I.forceMove(crab)
 		crab.origin = M
@@ -67,3 +75,14 @@
 	user.gib()
 	SSblackbox.record_feedback("nested tally", "changeling_powers", 1, list("[name]"))
 	return TRUE
+
+/datum/action/changeling/headslug/young
+	chemical_cost = 10
+	dna_cost = 1
+	young = TRUE
+	young_coeff = 2
+
+	desc = "We sacrifice our current body in a moment of need, placing us in control of a vessel that can plant our likeness in a new host. Costs 10 chemicals. This process are faster and cheaper because we are young."
+	helptext = "We will be placed in control of a small, fragile creature. We may attack a corpse like this to plant an egg which will slowly mature into a new form for us."
+	button_icon_state = "young_last_resort"
+

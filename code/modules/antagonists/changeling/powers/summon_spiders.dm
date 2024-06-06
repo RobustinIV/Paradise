@@ -28,7 +28,7 @@
 		is_operating = FALSE
 		return FALSE
 	user.visible_message("<span class='danger'>[user] begins vomiting an arachnid!</span>")
-	if(do_after(user, 4 SECONDS, FALSE, target = user)) // Takes 4 seconds to spawn a spider
+	if(do_after(user, 4 SECONDS / young_coeff, FALSE, target = user)) // Takes 4 seconds to spawn a spider
 		spider_counter++
 		user.visible_message("<span class='danger'>[user] vomits up an arachnid!</span>")
 		var/mob/living/simple_animal/hostile/poison/giant_spider/hunter/infestation_spider/S = new(user.loc)
@@ -191,6 +191,15 @@
 		return
 	if(!faction_check_mob(H))
 		enemies |= H
+
+/datum/action/changeling/spiders/young
+	name = "Spider Minion"
+	desc = "Our form divides, creating an aggressive arachnid which will regard us as a friend. Costs 15 chemicals."
+	helptext = "The spider are thoughtless creature, but will not attack their creators. We are too young to create more than one spider. Spider's order can be changed via remote hivemind (Alt+Shift click)."
+	button_icon_state = "young_spread_infestation"
+	chemical_cost = 15
+	dna_cost = 2
+	young_coeff = 2
 
 #undef IDLE_AGGRESSIVE
 #undef FOLLOW_AGGRESSIVE

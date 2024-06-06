@@ -795,6 +795,29 @@ GLOBAL_LIST_INIT(potential_theft_objectives, (subtypesof(/datum/theft_objective)
 		else
 			return FALSE
 
+/datum/objective/reproduction
+	name = "Reproduction"
+	/// If the objective should have `find_target()` called for it.
+	needs_target = FALSE
+	martyr_compatible = TRUE
+	var/created = 0
+
+/datum/objective/reproduction/New(text, datum/team/team_to_join)
+	. = ..()
+	gen_amount_rep()
+
+/datum/objective/reproduction/proc/gen_amount_rep(lowbound = 1, highbound = 3)
+	target_amount = rand(lowbound, highbound)
+	return target_amount
+
+/datum/objective/reproduction/check_completion()
+	if(created >= target_amount)
+		return TRUE
+	else
+		return FALSE
+
+/datum/objective/reproduction/update_explanation_text()
+	explanation_text = "We need to create [target_amount] new hive members using our special mutation."
 
 // Traders
 // These objectives have no check_completion, they exist only to tell Sol Traders what to aim for.

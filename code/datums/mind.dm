@@ -50,6 +50,8 @@
 	var/list/datum/objective/special_verbs = list()
 	var/list/targets = list()
 
+	var/list/psionic_bond = list() //for language.dm => Psionic Bond (young changeling - (changeling) parent commune)
+
 	/// Tracks if this mind has been a rev or not
 	var/has_been_rev = FALSE
 
@@ -152,6 +154,9 @@
 		A.on_body_transfer(old_current, current)
 	transfer_antag_huds(hud_to_transfer)				//inherit the antag HUD
 	transfer_actions(new_character)
+	if(psionic_bond)
+		current.add_language("Psionic Bond")
+
 	if(martial_art)
 		for(var/datum/martial_art/MA in known_martial_arts)
 			if(MA.temporary)

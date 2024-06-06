@@ -50,6 +50,7 @@
 	var/regenerating = FALSE
 	blurb_text_color = COLOR_PURPLE
 	blurb_text_outline_width = 1
+	var/young = FALSE
 
 /datum/antagonist/changeling/New()
 	..()
@@ -168,6 +169,11 @@
 			var/datum/objective/escape/escape_with_identity/identity_theft = new(assassinate = kill_objective)
 			add_antag_objective(identity_theft)
 
+	if(prob(20))
+		add_antag_objective(/datum/objective/reproduction)
+		var/datum/action/changeling/reproduction/rep = new()
+		rep.Grant(owner.current)
+
 	if(!(locate(/datum/objective/escape) in owner.get_all_objectives(include_team = FALSE)))
 		if(prob(70))
 			add_antag_objective(/datum/objective/escape)
@@ -246,12 +252,25 @@
 		STATION_TRAIT_CYBERNETIC_REVOLUTION = list(/datum/action/changeling/dissonant_shriek, /datum/action/changeling/dissonant_shriek/cyberrev)
 	)
 
+	var/list/young_replacement_powers = list(
+		"slug" = list(/datum/action/changeling/headslug, /datum/action/changeling/headslug/young),
+		"spiders" = list(/datum/action/changeling/spiders, /datum/action/changeling/spiders/young)
+	)
+
 	var/list/powers = list()
 	for(var/power_path in subtypesof(/datum/action/changeling))
 		var/datum/action/changeling/power = power_path
 		if(initial(power.power_type) != power_type)
 			continue
 		powers += power_path
+
+	if(young)
+		for(var/replace in young_replacement_powers)
+			powers -= replace[1]
+			powers += replace[2]
+	else
+		for(var/replace in young_replacement_powers)
+			powers -= replace[2]
 
 	for(var/trait in station_trait_restrictions)
 		if(HAS_TRAIT(SSstation, trait))
