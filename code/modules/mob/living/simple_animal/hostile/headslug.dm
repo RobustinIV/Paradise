@@ -284,7 +284,7 @@
 
 /obj/item/slug_flask/attack_self(mob/user)
 
-	switch(tgui_alert(user, "Choose.", "What to do?", list("Release", "Lesser Form Choice")))
+	switch(tgui_alert(user, "Choose", "What to do?", list("Release", "Lesser Form Choice")))
 		if("Release")
 			var/datum/antagonist/changeling/clinger = user.mind.has_antag_datum(/datum/antagonist/changeling)
 			if(clinger)
@@ -335,7 +335,7 @@
 				O.explanation_text = explanation_text
 				O.holder.add_objective(O, explanation_text, user)
 
-				to_chat(young_crab, "<span class='boldnotice'>We can use Alt-Click to place our egg in any corpse to evolve!.</span>")
+				to_chat(young_crab, "<span class='boldnotice'>We can use Alt-Click to place our egg in any organic corpse with heart to evolve!.</span>")
 		else
 
 			switch(tgui_alert(user, "Choose", "Lesser Form Choice", list("Monkey (Human)", "Neara (Skrell)", "Stok (Unathi)", "Wolpin (Vulpkanin)", "Farwa (Tajaran)")))
